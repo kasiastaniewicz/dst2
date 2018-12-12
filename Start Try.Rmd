@@ -1,0 +1,139 @@
+---
+title: "Project 2"
+author: "Sydney"
+date: "12/3/2018"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(caTools)
+library(randomForest)
+
+kddata <- read.csv("kddcup.data_10_percent_corrected", stringsAsFactors=FALSE)
+kddnames=read.table("kddcup.names",sep=":",skip=1,as.is=T)
+colnames(kddata)=c(kddnames[,1],"normal")
+
+kddata$protocol_type = factor(kddata$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
+kddata$service = factor(kddata$service, labels = c(1:66))
+kddata$normal = factor(kddata$normal, labels = c(1:23))
+kddata$flag = factor(kddata$flag, labels = c(1:11))
+# Need to make flag a way we can see what it was
+```
+
+```{r}
+for (i in 1:3) {
+  kddata[i] <- mutate_all(kddata[i], function(x) as.numeric(as.character(x)))
+}
+for (i in 5:42) {
+  kddata[i] <- mutate_all(kddata[i], function(x) as.numeric(as.character(x)))
+}
+kddata[-4] = scale(kddata[-4])
+kddata <- kddata[-21]
+kddata <- kddata[-20]
+```
+
+```{r}
+set.seed(123456)
+dataindex = c(1:dim(kddata)[1])
+oneFifth = ceiling((dim(kddata)[1])/5)
+fifthRange = c(1:oneFifth)
+jumbledIndex = sample(dataindex,dim(kddata)[1],replace=F)
+kddatatestlist1 = jumbledIndex[fifthRange]
+kddatatestlist5 = jumbledIndex[-fifthRange]
+kddatatestlist2 = kddatatestlist5[fifthRange]
+kddatatestlist5 = kddatatestlist5[-fifthRange]
+kddatatestlist3 = kddatatestlist5[fifthRange]
+kddatatestlist5 = kddatatestlist5[-fifthRange]
+kddatatestlist4 = kddatatestlist5[fifthRange]
+kddatatestlist5 = kddatatestlist5[-fifthRange]
+
+testset1 = kddata[kddatatestlist1,]
+trainingset1 = kddata[-kddatatestlist1,]
+testset2 = kddata[kddatatestlist2,]
+trainingset2 = kddata[-kddatatestlist2,]
+testset3 = kddata[kddatatestlist3,]
+trainingset3 = kddata[-kddatatestlist3,]
+testset4 = kddata[kddatatestlist4,]
+trainingset4 = kddata[-kddatatestlist4,]
+testset5 = kddata[kddatatestlist5,]
+trainingset5 = kddata[-kddatatestlist5,]
+
+train1 = testset1
+```
+
+```{r}
+classifier1 = randomForest(x=testset1[,-4],y=testset1$flag,ntree=500)
+classifier2 = randomForest(x=testset2[,-4],y=testset2$flag,ntree=500)
+classifier3 = randomForest(x=testset3[,-4],y=testset3$flag,ntree=500)
+# will not work: classifier4 = randomForest(x=testset4[,-4],y=testset4$flag,ntree=500)
+classifier5 = randomForest(x=testset5[,-4],y=testset5$flag,ntree=500)
+```
+
+```{r}
+ypred1 = predict(classifier1, newdata = trainingset1[,-4])
+ypred2 = predict(classifier2, newdata = trainingset2[,-4])
+ypred3 = predict(classifier3, newdata = trainingset3[,-4])
+# ypred4=predict(classifier4, newdata = trainingset4[,-4])
+ypred5 = predict(classifier5, newdata = trainingset5[,-4])
+cm1 = table(trainingset1[,4],ypred1)
+cm2 = table(trainingset2[,4],ypred2)
+cm3 = table(trainingset3[,4],ypred3)
+# cm4=table(trainingset4[,4],ypred4)
+cm5 = table(trainingset5[,4],ypred5)
+cm1
+cm2
+cm3
+# cm4
+cm5
+```
+
+```{r}
+Accuracy11 = 0
+Accuracy21 = 0
+Accuracy31 = 0
+# Accuracy41 = 0
+Accuracy51 = 0
+
+for (i in 1:11){
+  Accuracy11 = Accuracy11 + cm1[i, i]
+  Accuracy21 = Accuracy21 + cm2[i, i]
+  Accuracy31 = Accuracy31 + cm3[i, i]
+  # Accuracy41 = Accuracy41 + cm4[i, i]
+  Accuracy51 = Accuracy51 + cm5[i, i]
+}
+
+Accuracy12 = 0
+Accuracy22 = 0
+Accuracy32 = 0
+# Accuracy42 = 0
+Accuracy52 = 0
+
+for (i in 1:11){
+  for (j in 1:11){
+  Accuracy12 = Accuracy12 + cm1[i, j]
+  Accuracy22 = Accuracy22 + cm2[i, j]
+  Accuracy32 = Accuracy32 + cm3[i, j]
+  # Accuracy42 = Accuracy42 + cm4[i, j]
+  Accuracy52 = Accuracy52 + cm5[i, j]
+  }
+}
+
+Accuracy1 = Accuracy11/Accuracy12
+Accuracy2 = Accuracy21/Accuracy22
+Accuracy3 = Accuracy31/Accuracy32
+# Accuracy4 = Accuracy41/Accuracy42
+Accuracy5 = Accuracy51/Accuracy52
+
+Accuracy1
+Accuracy2
+Accuracy3
+# Accuracy4
+Accuracy5
+```
+
+converfromnumbers
+
+
