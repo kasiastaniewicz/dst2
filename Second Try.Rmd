@@ -1,0 +1,98 @@
+---
+title: "Second Try"
+author: "Sydney"
+date: "12/11/2018"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(caTools)
+library(randomForest)
+
+kddata <- read.csv("kddcup.data_10_percent_corrected", stringsAsFactors=FALSE)
+kddnames=read.table("kddcup.names",sep=":",skip=1,as.is=T)
+colnames(kddata)=c(kddnames[,1],"normal")
+```
+
+```{r}
+kddata["effect"] <- NA
+```
+
+```{r}
+for (j in 1:nrow(kddata)){
+  if (kddata$normal[j] == 'normal.'){
+    kddata$effect[j] <- 'nothing'
+  }
+  else if (kddata$normal[j] == 'back.'){
+    kddata$effect[j] <- 'slows'
+  }
+  else if (kddata$normal[j] == 'land.'){
+    kddata$effect[j] <- 'slows'
+  }
+  else if (kddata$normal[j] == 'neptune.'){
+    kddata$effect[j] <- 'slows'
+  }
+  else if (kddata$normal[j] == 'smurf.'){
+    kddata$effect[j] <- 'slows'
+  }
+  else if (kddata$normal[j] == 'pod.'){
+    kddata$effect[j] <- 'slows'
+  }
+  else if (kddata$normal[j] == 'teardrop.'){
+    kddata$effect[j] <- 'reboots'
+  }
+  else if (kddata$normal[j] == 'loadmodule.'){
+    kddata$effect[j] <- 'root_shell'
+  }
+  else if (kddata$normal[j] == 'buffer_overflow.'){
+    kddata$effect[j] <- 'root_shell'
+  }
+  else if (kddata$normal[j] == 'rootkit.'){
+    kddata$effect[j] <- 'root_shell'
+  }
+  else if (kddata$normal[j] == 'perl.'){
+    kddata$effect[j] <- 'root_shell'
+  }
+  else if (kddata$normal[j] == 'phf.'){
+    kddata$effect[j] <- 'executes_commands_root'
+  }
+  else if (kddata$normal[j] == 'guess_passwd.'){
+    kddata$effect[j] <- 'user_access'
+  }
+  else if (kddata$normal[j] == 'warezmaster.'){
+    kddata$effect[j] <- 'user_access'
+  }
+  else if (kddata$normal[j] == 'imap.'){
+    kddata$effect[j] <- 'root_access'
+  }
+  else if (kddata$normal[j] == 'multihop.'){
+    kddata$effect[j] <- 'root_access'
+  }
+  else if (kddata$normal[j] == 'ftp_write.'){
+    kddata$effect[j] <- 'user_access'
+  }
+  else if (kddata$normal[j] == 'spy.'){
+    kddata$effect[j] <- 'user_access'
+  }
+  else if (kddata$normal[j] == 'warezclient.'){
+    kddata$effect[j] <- 'user_access'
+  }
+  else if (kddata$normal[j] == 'satan.'){
+    kddata$effect[j] <- 'looks_known_vulnerabilities'
+  }
+  else if (kddata$normal[j] == 'nmap.'){
+    kddata$effect[j] <- 'identifies_active_ports'
+  }
+  else if (kddata$normal[j] == 'portsweep.'){
+    kddata$effect[j] <- 'identifies_active_ports'
+  }
+  else if (kddata$normal[j] == 'ipsweep.'){
+    kddata$effect[j] <- 'identifies_active_machines'
+  }
+}
+
+```
+
