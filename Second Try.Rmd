@@ -1,0 +1,85 @@
+---
+title: "Second Try"
+author: "Sydney"
+date: "12/11/2018"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(caTools)
+library(randomForest)
+
+kddata <- read.csv("kddcup.data_10_percent_corrected")
+kddnames=read.table("kddcup.names",sep=":",skip=1,as.is=T)
+colnames(kddata)=c(kddnames[,1],"normal")
+```
+
+```{r}
+kddata["effect"] <- kddata$normal
+```
+
+```{r}
+levels(kddata$effect)[which(levels(kddata$effect) =='normal.')] <- "nothing"
+levels(kddata$effect)[which(levels(kddata$effect) =='back.'|levels(kddata$effect) =='land.'|levels(kddata$effect) =='neptune.'|levels(kddata$effect) =='smurf.'|levels(kddata$effect) =='pod.')] <- 'slows'
+levels(kddata$effect)[which(levels(kddata$effect) =='teardrop.')] <- "reboots"
+levels(kddata$effect)[which(levels(kddata$effect) =='loadmodule.'|levels(kddata$effect) =='buffer_overflow.'|levels(kddata$effect) =='rootkit.'|levels(kddata$effect) =='perl.')] <- 'root_shell'
+levels(kddata$effect)[which(levels(kddata$effect) =='phf.')] <- "executes_commands_root"
+levels(kddata$effect)[which(levels(kddata$effect) =='guess_passwd.'|levels(kddata$effect) =='warezmaster.'|levels(kddata$effect) =='ftp_write.'|levels(kddata$effect) =='spy.'|levels(kddata$effect) =='warezclient.')]<-'user_access'
+levels(kddata$effect)[which(levels(kddata$effect) =='satan.')] <- "looks_known_vulnerabilities"
+levels(kddata$effect)[which(levels(kddata$effect) =='ipsweep.')] <- "identifies_active_machines"
+levels(kddata$effect)[which(levels(kddata$effect) =='multihop.'|levels(kddata$effect) =='imap.')] <- "root_access"
+levels(kddata$effect)[which(levels(kddata$effect) =='portsweep.'|levels(kddata$effect) =='nmap.')] <- "identifies_active_ports"
+```
+
+```{r}
+kddata$protocol_type = factor(kddata$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
+kddata$service = factor(kddata$service, labels = c(1:66))
+kddata$normal = factor(kddata$normal, labels = c(1:23))
+kddata$flag = factor(kddata$flag, labels = c(1:11))
+kddata$effect = factor(kddata$effect, labels = c(1:10))
+```
+
+```{r}
+for (i in 1:43) {
+  kddata[i] <- mutate_all(kddata[i], function(x) as.numeric(as.character(x)))
+}
+kddata[-43] = scale(kddata[-43])
+kddata <- kddata[-21]
+kddata <- kddata[-20]
+```
+
+```{r}
+library(caTools)
+set.seed(123)
+split = sample.split(kddata$effect, SplitRatio = 0.25)
+training_set = subset(kddata, split == TRUE)
+test_set = subset(kddata, split == FALSE)
+```
+
+```{r}
+regressor = lm(formula = effect ~ ., data = training_set)
+summary(regressor)
+```
+
+```{r}
+ypredlm = predict(regressor, newdata = test_set)
+```
+
+Below is the Mean Absolute Percentage Error
+
+```{r}
+library(MLmetrics)
+error = MAPE(ypredlm, test_set[,41])
+true = 1 - error
+true
+```
+
+
+
+
+
+
+
