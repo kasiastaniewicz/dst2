@@ -1,0 +1,135 @@
+---
+title: "ds2-LDA"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(caTools)
+library(randomForest)
+library(ggplot2)
+library(lattice)
+library(e1071)
+library(caret)
+library(MASS)
+
+kddata <- read.csv("C:/Users/seeml/Desktop/datascience/data/kddcup.data_10_percent.gz")
+kddnames=read.table("C:/Users/seeml/Desktop/datascience/data/kddcup.names",sep=":",skip=1,as.is=T)
+colnames(kddata)=c(kddnames[,1],"normal")
+```
+
+```{r}
+kddata$effect <- kddata$normal
+
+
+levels(kddata$effect)
+```
+
+```{r}
+levels(kddata$effect)[which(levels(kddata$effect) =='normal.')] <- "nothing"
+levels(kddata$effect)[which(levels(kddata$effect) =='back.'|levels(kddata$effect) =='land.'|levels(kddata$effect) =='neptune.'|levels(kddata$effect) =='smurf.'|levels(kddata$effect) =='pod.')] <- 'slows'
+levels(kddata$effect)[which(levels(kddata$effect) =='teardrop.')] <- "reboots"
+levels(kddata$effect)[which(levels(kddata$effect) =='loadmodule.'|levels(kddata$effect) =='buffer_overflow.'|levels(kddata$effect) =='rootkit.'|levels(kddata$effect) =='perl.')] <- 'root_shell'
+levels(kddata$effect)[which(levels(kddata$effect) =='phf.')] <- "executes_commands_root"
+levels(kddata$effect)[which(levels(kddata$effect) =='guess_passwd.'|levels(kddata$effect) =='warezmaster.'|levels(kddata$effect) =='ftp_write.'|levels(kddata$effect) =='spy.'|levels(kddata$effect) =='warezclient.')]<-'user_access'
+levels(kddata$effect)[which(levels(kddata$effect) =='satan.')] <- "looks_known_vulnerabilities"
+levels(kddata$effect)[which(levels(kddata$effect) =='ipsweep.')] <- "identifies_active_machines"
+levels(kddata$effect)[which(levels(kddata$effect) =='multihop.'|levels(kddata$effect) =='imap.')] <- "root_access"
+levels(kddata$effect)[which(levels(kddata$effect) =='portsweep.'|levels(kddata$effect) =='nmap.')] <- "identifies_active_ports"
+
+head(kddata$effect)
+```
+
+```{r}
+#set service col to three levels:private=1,http=2,others=3
+levels(kddata$service)[which(levels(kddata$service) != "http" & levels(kddata$service) != "private")] <- "others"
+kddata$service<-as.numeric(factor(kddata$service,levels = c("private","http","others")))
+```
+
+
+
+
+
+
+```{r}
+kddata <- kddata[-21]
+kddata <- kddata[-20]
+kddata$effect = factor(kddata$effect, labels = c(1:10))
+kddata$protocol_type = as.numeric(kddata$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
+#kddata$service = factor(kddata$service, labels = c(1:66))
+#kddata$normal = as.numeric(kddata$normal, labels = c(1:23))
+kddata$flag = as.numeric(kddata$flag, labels = c(1:11))
+```
+
+```{r}
+datasample<-sample(seq_len(nrow(kddata)),size=floor(.20*nrow(kddata)))
+train<-kddata[datasample,]
+test<-kddata[-datasample,]
+
+```
+
+
+#lda
+```{r}
+ldamodel <- lda(effect~.-normal-urgent,data=train)
+
+
+predict_lda<-predict(ldamodel,test)$class
+
+```
+
+
+```{r}
+
+
+confusionMatrix(factor(predict_lda),factor(test$effect),dnn = c("prediction","actual"))
+```
+
+
+
+#random forest
+```{r}
+classifier1 = randomForest(effect~.-normal, data=train,ntree=500)
+```
+
+```{r}
+predictrf<-predict(classifier1,test)
+confusionMatrix(factor(predictrf),factor(test$effect),dnn = c("prediction","actual"))
+```
+
+
+```{r}
+IF <- importance(classifier1)
+IF
+```
+
+```{r}
+varImpPlot(classifier1,type=2)
+```
+
+```{r}
+getTree(classifier1, 1, labelVar=TRUE)
+```
+
+
+#k-fold
+```{r}
+folds = createFolds(train$effect, k = 10)
+cv_logit = lapply(folds, functioncv(x) {
+  training_fold = train[-x, ]
+  test_fold = train[x, ]
+  model = randomForest(effect~.-normal,data=training_fold,ntree=500,importance=TRUE)
+  y_pred = predict(model, newdata = test_fold)
+  
+  cm<-confusionMatrix(factor(y_pred),factor(test_fold$effect),dnn = c("prediction","actual"))
+  return(cm$table)
+})
+
+
+```
+
+
+
+
