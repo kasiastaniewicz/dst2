@@ -12,147 +12,59 @@ library(data.table)
 library(caTools)
 library(randomForest)
 
-kddata <- read.csv("kddcup.data_10_percent_corrected", stringsAsFactors=FALSE)
+kddata <- read.csv("kddcup.data_10_percent_corrected", stringsAsFactors=TRUE)
 kddnames=read.table("kddcup.names",sep=":",skip=1,as.is=T)
 colnames(kddata)=c(kddnames[,1],"normal")
 ```
 
 ```{r}
-kddata["effect"] <- NA
+kddata["effect"] <- kddata$normal
 ```
 
 ```{r}
-for (j in 1:nrow(kddata)){
-  if (kddata$normal[j] == 'normal.'){
-    kddata$effect[j] <- 'nothing'
-  }
-  else if (kddata$normal[j] == 'back.'){
-    kddata$effect[j] <- 'slows'
-  }
-  else if (kddata$normal[j] == 'land.'){
-    kddata$effect[j] <- 'slows'
-  }
-  else if (kddata$normal[j] == 'neptune.'){
-    kddata$effect[j] <- 'slows'
-  }
-  else if (kddata$normal[j] == 'smurf.'){
-    kddata$effect[j] <- 'slows'
-  }
-  else if (kddata$normal[j] == 'pod.'){
-    kddata$effect[j] <- 'slows'
-  }
-  else if (kddata$normal[j] == 'teardrop.'){
-    kddata$effect[j] <- 'reboots'
-  }
-  else if (kddata$normal[j] == 'loadmodule.'){
-    kddata$effect[j] <- 'root_shell'
-  }
-  else if (kddata$normal[j] == 'buffer_overflow.'){
-    kddata$effect[j] <- 'root_shell'
-  }
-  else if (kddata$normal[j] == 'rootkit.'){
-    kddata$effect[j] <- 'root_shell'
-  }
-  else if (kddata$normal[j] == 'perl.'){
-    kddata$effect[j] <- 'root_shell'
-  }
-  else if (kddata$normal[j] == 'phf.'){
-    kddata$effect[j] <- 'executes_commands_root'
-  }
-  else if (kddata$normal[j] == 'guess_passwd.'){
-    kddata$effect[j] <- 'user_access'
-  }
-  else if (kddata$normal[j] == 'warezmaster.'){
-    kddata$effect[j] <- 'user_access'
-  }
-  else if (kddata$normal[j] == 'imap.'){
-    kddata$effect[j] <- 'root_access'
-  }
-  else if (kddata$normal[j] == 'multihop.'){
-    kddata$effect[j] <- 'root_access'
-  }
-  else if (kddata$normal[j] == 'ftp_write.'){
-    kddata$effect[j] <- 'user_access'
-  }
-  else if (kddata$normal[j] == 'spy.'){
-    kddata$effect[j] <- 'user_access'
-  }
-  else if (kddata$normal[j] == 'warezclient.'){
-    kddata$effect[j] <- 'user_access'
-  }
-  else if (kddata$normal[j] == 'satan.'){
-    kddata$effect[j] <- 'looks_known_vulnerabilities'
-  }
-  else if (kddata$normal[j] == 'nmap.'){
-    kddata$effect[j] <- 'identifies_active_ports'
-  }
-  else if (kddata$normal[j] == 'portsweep.'){
-    kddata$effect[j] <- 'identifies_active_ports'
-  }
-  else if (kddata$normal[j] == 'ipsweep.'){
-    kddata$effect[j] <- 'identifies_active_machines'
-  }
-}
+levels(kddata$effect)[which(levels(kddata$effect) =='normal.')] <- "nothing"
+levels(kddata$effect)[which(levels(kddata$effect) =='back.'|levels(kddata$effect) =='land.'|levels(kddata$effect) =='neptune.'|levels(kddata$effect) =='smurf.'|levels(kddata$effect) =='pod.')] <- 'slows'
+levels(kddata$effect)[which(levels(kddata$effect) =='teardrop.')] <- "reboots"
+levels(kddata$effect)[which(levels(kddata$effect) =='loadmodule.'|levels(kddata$effect) =='buffer_overflow.'|levels(kddata$effect) =='rootkit.'|levels(kddata$effect) =='perl.')] <- 'root_shell'
+levels(kddata$effect)[which(levels(kddata$effect) =='phf.')] <- "executes_commands_root"
+levels(kddata$effect)[which(levels(kddata$effect) =='guess_passwd.'|levels(kddata$effect) =='warezmaster.'|levels(kddata$effect) =='ftp_write.'|levels(kddata$effect) =='spy.'|levels(kddata$effect) =='warezclient.')]<-'user_access'
+levels(kddata$effect)[which(levels(kddata$effect) =='satan.')] <- "looks_known_vulnerabilities"
+levels(kddata$effect)[which(levels(kddata$effect) =='ipsweep.')] <- "identifies_active_machines"
+levels(kddata$effect)[which(levels(kddata$effect) =='multihop.'|levels(kddata$effect) =='imap.')] <- "root_access"
+levels(kddata$effect)[which(levels(kddata$effect) =='portsweep.'|levels(kddata$effect) =='nmap.')] <- "identifies_active_ports"
 ```
+
+Below, 1 is where the adversary can get info directly from the attack and -1 is where it doesn't.
 
 ```{r}
 kddata1 <- kddata
-for (j in 1:nrow(kddata1)){
-  if (kddata1$effect[j] == 'nothing'){
-    kddata1$effect[j] <- -1
-  }
-  else if (kddata1$effect[j] == 'slows'){
-    kddata1$effect[j] <- -1
-  }
-  else if (kddata1$effect[j] == 'reboots'){
-    kddata1$effect[j] <- -1
-  }
-  else if (kddata1$effect[j] == 'root_shell'){
-    kddata1$effect[j] <- 1
-  }
-  else if (kddata1$effect[j] == 'executes_commands_root'){
-    kddata1$effect[j] <- 1
-  }
-  else if (kddata1$effect[j] == 'user_access'){
-    kddata1$effect[j] <- 1
-  }
-  else if (kddata1$effect[j] == 'root_access'){
-    kddata1$effect[j] <- 1
-  }
-  else if (kddata1$effect[j] == 'looks_known_vulnerabilities'){
-    kddata1$effect[j] <- -1
-  }
-  else if (kddata1$effect[j] == 'identifies_active_ports'){
-    kddata1$effect[j] <- -1
-  }
-  else if (kddata1$effect[j] == 'identifies_active_machines'){
-    kddata1$effect[j] <- -1
-  }
-}
+levels(kddata$effect)[which(levels(kddata$effect) == 'nothing' | levels(kddata$effect) == 'slows' | levels(kddata$effect) == 'reboots' | levels(kddata$effect) == 'looks_known_vulnerabilities' | levels(kddata$effect) == 'identifies_active_ports' | levels(kddata$effect) == 'identifies_active_machines')] <- -1
+
+levels(kddata$effect)[which(levels(kddata$effect) == 'root_shell' | levels(kddata$effect) == 'executes_commands_root' | levels(kddata$effect) == 'user_access' | levels(kddata$effect) == 'root_access')] <- 1
 ```
 
 ```{r}
-kddata1$protocol_type = factor(kddata1$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
-kddata1$service = factor(kddata1$service, labels = c(1:66))
-kddata1$normal = factor(kddata1$normal, labels = c(1:23))
-kddata1$flag = factor(kddata1$flag, labels = c(1:11))
+kddata$protocol_type = factor(kddata$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
+kddata$service = factor(kddata$service, labels = c(1:66))
+kddata$normal = factor(kddata$normal, labels = c(1:23))
+kddata$flag = factor(kddata$flag, labels = c(1:11))
 ```
 
 ```{r}
 for (i in 1:42) {
-  kddata1[i] <- mutate_all(kddata1[i], function(x) as.numeric(as.character(x)))
+  kddata[i] <- mutate_all(kddata[i], function(x) as.numeric(as.character(x)))
 }
-kddata1[-43] = scale(kddata1[-43])
-kddata1 <- kddata1[-21]
-kddata1 <- kddata1[-20]
+kddata[-43] = scale(kddata[-43])
+kddata <- kddata[-21]
+kddata <- kddata[-20]
 ```
 
 ```{r}
 set.seed(123456)
-dataindex = c(1:dim(kddata1)[1])
-oneFifth = ceiling((dim(kddata1)[1])/5)
+dataindex = c(1:dim(kddata)[1])
+oneFifth = ceiling((dim(kddata)[1])/5)
 fifthRange = c(1:oneFifth)
-jumbledIndex = sample(dataindex,dim(kddata1)[1],replace=F)
+jumbledIndex = sample(dataindex,dim(kddata)[1],replace=F)
 kddatatestlist1 = jumbledIndex[fifthRange]
 kddatatestlist5 = jumbledIndex[-fifthRange]
 kddatatestlist2 = kddatatestlist5[fifthRange]
@@ -162,25 +74,25 @@ kddatatestlist5 = kddatatestlist5[-fifthRange]
 kddatatestlist4 = kddatatestlist5[fifthRange]
 kddatatestlist5 = kddatatestlist5[-fifthRange]
 
-testset1 = kddata1[kddatatestlist1,]
-trainingset1 = kddata1[-kddatatestlist1,]
-testset2 = kddata1[kddatatestlist2,]
-trainingset2 = kddata1[-kddatatestlist2,]
-testset3 = kddata1[kddatatestlist3,]
-trainingset3 = kddata1[-kddatatestlist3,]
-testset4 = kddata1[kddatatestlist4,]
-trainingset4 = kddata1[-kddatatestlist4,]
-testset5 = kddata1[kddatatestlist5,]
-trainingset5 = kddata1[-kddatatestlist5,]
+testset1 = kddata[kddatatestlist1,]
+trainingset1 = kddata[-kddatatestlist1,]
+testset2 = kddata[kddatatestlist2,]
+trainingset2 = kddata[-kddatatestlist2,]
+testset3 = kddata[kddatatestlist3,]
+trainingset3 = kddata[-kddatatestlist3,]
+testset4 = kddata[kddatatestlist4,]
+trainingset4 = kddata[-kddatatestlist4,]
+testset5 = kddata[kddatatestlist5,]
+trainingset5 = kddata[-kddatatestlist5,]
 ```
 
 ```{r}
 library(fastAdaboost)
-classifier1 <- adaboost(effect ~ ., trainingset1, nIter = 5)
-classifier2 <- adaboost(effect ~ ., trainingset2, nIter = 5)
-classifier3 <- adaboost(effect ~ ., trainingset3, nIter = 5)
-classifier4 <- adaboost(effect ~ ., trainingset4, nIter = 5)
-classifier5 <- adaboost(effect ~ ., trainingset5, nIter = 5)
+classifier1 <- adaboost(effect ~ .-normal, trainingset1, nIter = 5)
+classifier2 <- adaboost(effect ~ .-normal, trainingset2, nIter = 5)
+classifier3 <- adaboost(effect ~ .-normal, trainingset3, nIter = 5)
+classifier4 <- adaboost(effect ~ .-normal, trainingset4, nIter = 5)
+classifier5 <- adaboost(effect ~ .-normal, trainingset5, nIter = 5)
 
 ```
 
@@ -218,21 +130,31 @@ Accuracy4
 Accuracy5
 ```
 
+# ```{r}
+# library(pROC)
+# ROC1 <- roc(testset1[, 41], ypred1$class)
+# ROC2 <- roc(testset2[, 41], ypred2$class)
+# ROC3 <- roc(testset3[, 41], ypred3$class)
+# ROC4 <- roc(testset4[, 41], ypred4$class)
+# ROC5 <- roc(testset5[, 41], ypred5$class)
+# ```
+
 ```{r}
-library(pROC)
-ROC1 <- roc(testset1[, 41], ypred1$class)
-ROC2 <- roc(testset2[, 41], ypred2$class)
-ROC3 <- roc(testset3[, 41], ypred3$class)
-ROC4 <- roc(testset4[, 41], ypred4$class)
-ROC5 <- roc(testset5[, 41], ypred5$class)
+library(ROCR)
+pred1 <- prediction(ypred1$class, testset1[, 41])
+perf1 <- performance(pred1, measure = "tpr", x.measure = "fpr")
+plot(perf1, col = rainbow(7), main = "ROC curve", xlab = "Specificity", ylab = "Sensitivity")
 ```
 
 ```{r}
-kddata2 <- kddata
+classifier1RF = randomForest(effect~.-normal, data=testset1, ntree=50)
 ```
 
-
-
+```{r}
+library(caret)
+predictRF<-predict(classifier1RF, trainingset1)
+confusionMatrix(factor(predictRF),factor(trainingset1$effect),dnn = c("prediction","actual"))
+```
 
 
 
