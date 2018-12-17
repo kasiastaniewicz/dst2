@@ -57,12 +57,13 @@ kddata$service<-as.numeric(factor(kddata$service,levels = c("private","http","ot
 kddata <- kddata[-21]
 kddata <- kddata[-20]
 kddata$effect = factor(kddata$effect, labels = c(1:10))
-kddata$protocol_type = as.numeric(kddata$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
+kddata$protocol_type = factor(kddata$protocol_type, levels = c('icmp', 'tcp', 'udp'), labels = c(1, 2, 3))
 #kddata$service = factor(kddata$service, labels = c(1:66))
 #kddata$normal = as.numeric(kddata$normal, labels = c(1:23))
-kddata$flag = as.numeric(kddata$flag, labels = c(1:11))
+kddata$flag = factor(kddata$flag, labels = c(1:11))
 ```
 
+#train and test
 ```{r}
 datasample<-sample(seq_len(nrow(kddata)),size=floor(.20*nrow(kddata)))
 train<-kddata[datasample,]
@@ -80,7 +81,7 @@ predict_lda<-predict(ldamodel,test)$class
 
 ```
 
-
+#cm of lda model
 ```{r}
 
 
@@ -94,6 +95,7 @@ confusionMatrix(factor(predict_lda),factor(test$effect),dnn = c("prediction","ac
 classifier1 = randomForest(effect~.-normal, data=train,ntree=500)
 ```
 
+#cm
 ```{r}
 predictrf<-predict(classifier1,test)
 confusionMatrix(factor(predictrf),factor(test$effect),dnn = c("prediction","actual"))
@@ -105,10 +107,12 @@ IF <- importance(classifier1)
 IF
 ```
 
+#feature importance plot
 ```{r}
 varImpPlot(classifier1,type=2)
 ```
 
+#tree table
 ```{r}
 getTree(classifier1, 1, labelVar=TRUE)
 ```
